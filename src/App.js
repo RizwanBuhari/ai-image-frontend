@@ -18,7 +18,7 @@ function App() {
     setError(null);
 
     try {
-      const response = await axios.post('http://localhost:3001/generate-image', { prompt });
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/generate-image`, { prompt });
       const newImage = {
         prompt: prompt,
         data: `data:image/png;base64,${response.data.image}`,
