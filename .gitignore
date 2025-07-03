@@ -29,3 +29,8 @@ lerna-debug.log*
 .env.production.local
 
 .DS_Store
+
+# Firebase specific files
+.firebase/
+.firebaserc
+firebase.json

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+// axios is no longer needed if using native fetch
+// import axios from 'axios'; 
 
 // Starry background component for a more magical feel
 const StarBackground = () => {
@@ -46,6 +47,10 @@ function App() {
   // New state for the image modal
   const [selectedImage, setSelectedImage] = useState(null); // Stores the image object to display in modal
 
+  // IMPORTANT: This is your deployed Firebase Function URL
+  // Replace 'https://api-4vulrz3vxa-uc.a.run.app' with your actual function URL if it changes
+  const FUNCTION_URL = 'https://api-4vulrz3vxa-uc.a.run.app'; 
+
   const generateImage = async () => {
     if (!prompt.trim()) {
       setError('Please enter a prompt to generate an image.');
@@ -58,25 +63,39 @@ function App() {
     setImages([{ id: tempImageId, prompt: prompt, data: null, timestamp: new Date().toISOString(), isLoading: true }, ...images]);
 
     try {
-      // IMPORTANT: Replace 'http://localhost:3001' with your actual backend API URL for deployment.
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/generate-image`, { prompt });
+      // Using native fetch API
+      const response = await fetch(`${FUNCTION_URL}/generate-image`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt }),
+      });
 
-      const newImage = {
-        id: tempImageId,
-        prompt: prompt,
-        data: `data:image/png;base64,${response.data.image}`,
-        timestamp: new Date().toISOString(),
-        isLoading: false
-      };
+      const data = await response.json();
 
-      setImages(currentImages => currentImages.map(img =>
-        img.id === tempImageId ? newImage : img
-      ));
-      setPrompt('');
+      if (response.ok) {
+        const newImage = {
+          id: tempImageId,
+          prompt: prompt,
+          data: `data:image/png;base64,${data.image}`, // Assuming backend sends base64 image data
+          timestamp: new Date().toISOString(),
+          isLoading: false
+        };
+
+        setImages(currentImages => currentImages.map(img =>
+          img.id === tempImageId ? newImage : img
+        ));
+        setPrompt('');
+      } else {
+        setError(data.error || 'Failed to generate image. Please ensure your backend is running and try again.');
+        console.error('Backend error:', data.error);
+        setImages(currentImages => currentImages.filter(img => img.id !== tempImageId)); // Remove placeholder on error
+      }
     } catch (err) {
-      setError('Failed to generate image. Please ensure your backend is running and try again.');
-      console.error('Error generating image:', err);
-      setImages(currentImages => currentImages.filter(img => img.id !== tempImageId));
+      console.error('Network or unexpected error:', err);
+      setError('Network error or unexpected issue. Please check console for details.');
+      setImages(currentImages => currentImages.filter(img => img.id !== tempImageId)); // Remove placeholder on error
     } finally {
       setIsGenerating(false);
     }
@@ -201,6 +220,7 @@ function App() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
+                Generating...
               </div>
             ) : (
               <img
